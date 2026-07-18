@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <div align="center">
 
 # SecureRAG
@@ -356,3 +357,7 @@ This project is licensed under the MIT License — see [LICENSE](LICENSE) for de
 **v1.0.0 — Built with care for production deployment**
 
 </div>
+=======
+# SECURE_RAG
+Secure AI-powered RAG application using FastAPI, React, ChromaDB, PostgreSQL, Docker, and LangChain with guardrails, source citations, and enterprise-ready architecture.
+>>>>>>> c9713dc0ebb149262da9e0379a7e08fcbdb7ca70
