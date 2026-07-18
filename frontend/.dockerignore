@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+Dockerfile
+.dockerignore
+docker-compose*.yml
+.vscode
+.idea
+coverage
+htmlcov
+.pytest_cache

@@ -1,0 +1,2 @@
+# Placeholder for initial migration.
+# Run: alembic revision --autogenerate -m "initial" to generate the first migration.
