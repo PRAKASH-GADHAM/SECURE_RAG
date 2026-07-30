@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
 from app.api.v1.router import api_router
 from app.config import get_settings
@@ -31,9 +31,10 @@ logger = get_logger(__name__)
 
 
 async def seed_roles():
-    """Seed default roles into the database.
+    """Seed default roles into the database atomically.
 
-    Ensures 'admin' and 'user' roles exist on startup.
+    Uses INSERT ... ON CONFLICT DO NOTHING so multiple workers can
+    safely call this simultaneously without duplicate key errors.
     """
     try:
         session_factory = get_session_factory()
@@ -41,28 +42,24 @@ async def seed_roles():
         logger.warning("Database not initialized, skipping role seeding")
         return
 
+    default_roles = [
+        {"name": "admin", "description": "Full system access"},
+        {"name": "user", "description": "Standard user access"},
+    ]
+
     async with session_factory() as session:
         try:
-            # Check if roles exist
-            result = await session.execute(select(Role))
-            existing_roles = {r.name for r in result.scalars().all()}
-
-            default_roles = [
-                {"name": "admin", "description": "Full system access"},
-                {"name": "user", "description": "Standard user access"},
-            ]
-
-            for role_data in default_roles:
-                if role_data["name"] not in existing_roles:
-                    role = Role(**role_data)
-                    session.add(role)
-                    logger.info(f"Created role: {role_data['name']}")
-
+            stmt = (
+                insert(Role)
+                .values(default_roles)
+                .on_conflict_do_nothing(index_elements=["name"])
+            )
+            await session.execute(stmt)
             await session.commit()
-            logger.info("Role seeding completed")
+            logger.info("Default roles seeded (idempotent)")
         except Exception as e:
             await session.rollback()
-            logger.error(f"Role seeding failed: {e}")
+            logger.warning(f"Role seeding skipped: {e}")
 
 
 @asynccontextmanager
@@ -93,7 +90,7 @@ async def lifespan(app: FastAPI):
     init_db(settings.database_url)
     logger.info("Database initialized")
 
-    # Seed default roles
+    # Seed default roles (idempotent via ON CONFLICT DO NOTHING)
     await seed_roles()
 
     yield
